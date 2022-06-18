@@ -1,5 +1,6 @@
 #include <ESP8266WebServer.h>
 #include <DNSServer.h> 
+#include <EEPROM.h>
 
 #define DNS_PORT 53
 
@@ -27,14 +28,19 @@ uint32_t calculateCRC32(const uint8_t *data, size_t length) {
 }
 
 bool readAndVerifyConfig() {
-  ESP.rtcUserMemoryRead(0, (uint32_t*)&daliFiConfig, sizeof(daliFiConfig));
+  EEPROM.begin(sizeof(daliFiConfig));
+  EEPROM.get(0, daliFiConfig);
+  if (!EEPROM.end())
+    return false;  // Not actually a failure, but we might as well keep it in mind
   uint32_t crc = calculateCRC32((uint8_t*)&daliFiConfig, sizeof(daliFiConfig)-sizeof(uint32_t));
   return crc == daliFiConfig.crc; // If our calculated CRC matches the CRC we read, the saved info is valid
 }
 
 void resetConfig() {
   memset(&daliFiConfig, 0, sizeof(daliFiConfig));
-  ESP.rtcUserMemoryWrite(0, (uint32_t*)&daliFiConfig, sizeof(daliFiConfig));
+  EEPROM.begin(sizeof(daliFiConfig));
+  EEPROM.put(0, daliFiConfig);
+  EEPROM.end();
 }
 
 void handleRoot() {
@@ -89,7 +95,9 @@ void handleSetConfig() {
   daliFiConfig.powerOnLvl = configServer.arg("pol").toInt();
   configServer.sendContent(String("ssid: ")+String(daliFiConfig.ssid)+String("\npass: ")+String(daliFiConfig.password)+String("\nlamps: ")+String(daliFiConfig.nLamps)+String("\npower-on level: ")+String(daliFiConfig.powerOnLvl)+String("\n"));
   daliFiConfig.crc = calculateCRC32((uint8_t*)&daliFiConfig, sizeof(daliFiConfig)-sizeof(uint32_t));
-  ESP.rtcUserMemoryWrite(0, (uint32_t*)&daliFiConfig, sizeof(daliFiConfig));
+  EEPROM.begin(sizeof(daliFiConfig));
+  EEPROM.put(0, daliFiConfig);
+  EEPROM.end();
   configServer.sendContent("Wrote config\n");
   memset(&daliFiConfig, 0, sizeof(daliFiConfig));
   if (readAndVerifyConfig()) {
