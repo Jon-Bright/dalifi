@@ -416,28 +416,32 @@ daliRcvStatus Dali::receiveBackwardFrame(void) {
 
 // sendReset sends a factory reset to the given address.  It returns true if the message was successfully sent, false if a collision was detected.
 bool Dali::sendReset(daliAddr addr) {
+  addr |= 1;
   return sendCommand(priConfig, addr, msgReset);
 }
 
 bool Dali::sendLampOff(daliAddr addr, bool fromUser) {
+  addr |= 1;
   return sendCommand(fromUser ? priUser : priAuto, addr, msgOff);
 }
 
 bool Dali::sendStepDownOff(daliAddr addr, bool fromUser) {
+  addr |= 1;
   return sendCommand(fromUser ? priUser : priAuto, addr, msgStepDownOff);
 }
 
 bool Dali::sendOnStepUp(daliAddr addr, bool fromUser) {
+  addr |= 1;
   return sendCommand(fromUser ? priUser : priAuto, addr, msgOnStepUp);
 }
 
 bool Dali::sendDapc(daliAddr addr, bool fromUser, byte level) {
-  addr ^= 1; // Turn off selector bit for DAPC
   return sendCommand(fromUser ? priUser : priAuto, addr, (daliMsg)level);
 }
 
 bool Dali::sendSetPowerOnLevel(daliAddr addr, bool fromUser, byte level) {
   // We have to set DTR0 first, then set POL to DTR0
+  addr |= 1;
   if (!sendCommand(fromUser ? priUser : priAuto, addrDTR0, (daliMsg)level)) {
     return false;
   }
@@ -445,6 +449,7 @@ bool Dali::sendSetPowerOnLevel(daliAddr addr, bool fromUser, byte level) {
 }
 
 int Dali::queryLevel(daliAddr addr, bool fromUser, daliMsg query) {
+  addr |= 1;
   if (!sendCommand(fromUser ? priUser : priAuto, addr, query)) {
     return -1;
   }
@@ -514,7 +519,7 @@ daliAddr* Dali::reAddressLamps(byte *num) {
   }
   *num = shortAddr;
   for (byte b = 0; b < shortAddr; b++) {
-    ret[b] = (b << 1) | 1;
+    ret[b] = b << 1;
   }
   return ret;
 }
